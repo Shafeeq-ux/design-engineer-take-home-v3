@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aria AI Assistant, for the interview</title>
+    <style>
+      :root {
+        --ink: oklch(0.2 0.01 272);
+        --muted: oklch(0.48 0.02 270);
+        --line: oklch(0.91 0.008 272);
+        --indigo: oklch(0.395 0.222 272.5);
+        --indigo-soft: oklch(0.96 0.02 272);
+        --paper: #fff;
+        --canvas: oklch(0.985 0.004 272);
+        --sans: "Inter", "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 17px;
+        line-height: 1.55;
+        letter-spacing: -0.011em;
+      }
+      main {
+        width: min(920px, calc(100% - 2.5rem));
+        margin: 0 auto;
+        padding: 3.5rem 0 5rem;
+      }
+      header.top { margin-bottom: 2.75rem; }
+      .eyebrow {
+        margin: 0 0 0.7rem;
+        color: var(--indigo);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0 0 0.85rem;
+        font-size: clamp(2rem, 4vw, 2.6rem);
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+      }
+      h2 {
+        margin: 2.75rem 0 0.7rem;
+        font-size: 1.35rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      p { margin: 0 0 0.85rem; }
+      .lede { font-size: 1.08rem; max-width: 40rem; }
+      .note {
+        margin: 1.25rem 0 0;
+        padding: 0.85rem 1rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+      .note strong { color: var(--ink); font-weight: 600; }
+      a { color: var(--indigo); }
+      ol.steps, ul.plain { margin: 0.2rem 0 0.9rem; padding-left: 1.15rem; }
+      li { margin: 0.28rem 0; }
+      figure {
+        margin: 1.1rem 0 0.4rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      figure img, figure video { display: block; width: 100%; height: auto; background: #e6e6eb; }
+      figcaption {
+        padding: 0.7rem 0.95rem 0.8rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+        border-top: 1px solid var(--line);
+      }
+      figcaption b { color: var(--ink); font-weight: 600; }
+      .stage {
+        display: inline-block;
+        margin-right: 0.4rem;
+        color: var(--indigo);
+        font-variant-numeric: tabular-nums;
+      }
+      section.pair { margin-top: 1.6rem; }
+      footer.end {
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.86em;
+        background: var(--indigo-soft);
+        padding: 0.05em 0.35em;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top">
+        <p class="eyebrow">Aria Sales Hub</p>
+        <h1>One question, then a sheet that grows from the composer.</h1>
+        <p class="lede">Jordan Ashby manages a sales team at Aria, a fictional company that sells autonomous-drone security systems. She asks the assistant how Marcus Bell is doing on discovery calls this quarter. Marcus is one of her reps, and he is working the Brookfield public-safety deal.</p>
+        <figure>
+          <video controls playsinline preload="metadata" src="presentation/walkthrough.mp4">
+            Desktop and mobile journey
+          </video>
+          <figcaption><b>Desktop and mobile journey.</b> The sheet opens from the composer, follows the discovery scores through a booked rehearsal, docks and closes, then shows the answer and the next step on a phone.</figcaption>
+        </figure>
+        <p class="note"><strong>The stills below</strong> are the same path, one stage at a time. The recording above is the motion, including the dock and the close.</p>
+      </header>
+
+      <section>
+        <h2>Where the assistant appears</h2>
+        <p>The entry point is the composer already on every page, centered at the bottom. The answer uses that same width and grows upward, so the reply feels like it came out of the question Jordan just sent. A quiet indigo tint frames the white content on the left, right, and bottom. The header is one line, “Aria AI Assistant,” with the Aria mark in a white circle, a dock control, and dismiss.</p>
+        <p><a href="./">Live preview</a> of the built app. To run it locally, clone this repository, install, and start the dev server.</p>
+        <ol class="steps">
+          <li><code>git clone https://github.com/Shafeeq-ux/design-engineer-take-home-v3</code></li>
+          <li><code>npm install</code></li>
+          <li><code>npm run dev</code></li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Five stages, one action at a time</h2>
+        <p>A spine replaces the stage name as Jordan moves forward. The footer holds a single primary action. Nothing is sent until she presses Send. The only data is the mock stream: Marcus Bell, the last 6 discovery calls, scores 4.1, 3.8, and 2.9, one evidence string per skill, and a next step about the Brookfield call.</p>
+
+        <figure>
+          <img src="presentation/answer.png" alt="Floating assistant sheet on the Answer stage, with the discovery skills card and scores 4.1, 3.8, and 2.9 above the composer." />
+          <figcaption><span class="stage">1 · Answer</span> The streamed sentences settle, then the coaching card. The action is “Draft the coaching note.”</figcaption>
+        </figure>
+
+        <figure>
+          <img src="presentation/evidence.png" alt="Evidence stage with Stakeholder discovery open, showing the quote that three calls ended without confirming who else shapes the decision." />
+          <figcaption><span class="stage">2 · Evidence</span> Opening a score shows the call evidence. One row is open. Stakeholder discovery, at 2.9, is the gap.</figcaption>
+        </figure>
+
+        <figure>
+          <img src="presentation/draft.png" alt="Draft stage with an editable note to Marcus Bell, a removable Stakeholder discovery attachment, and Send to Marcus." />
+          <figcaption><span class="stage">3 · Draft</span> The note is the three streamed sentences, the gap skill, and the Brookfield next step. She can edit it and remove the attachment. Send is the only way it leaves.</figcaption>
+        </figure>
+
+        <figure>
+          <img src="presentation/sent.png" alt="Sent stage with a receipt that the coaching note went to Marcus as drafted, and one rehearsal time of tomorrow at 9:00 AM." />
+          <figcaption><span class="stage">4 · Sent</span> The receipt says the note was sent as drafted, or with her edits if she changed it. One rehearsal time: tomorrow at 9:00 AM, both free, before Thursday.</figcaption>
+        </figure>
+
+        <figure>
+          <img src="presentation/booked.png" alt="Booked stage with the rehearsal confirmation, a short timeline, and a Back to Home button." />
+          <figcaption><span class="stage">5 · Booked</span> Booking that slot is the only change on Home. Coaching follow-ups moves from 4 to 5.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>The one interaction</h2>
+        <p>Each score is a button. Opening it reveals the evidence string for that skill, and opening a second row closes the first. The first open is what moves the spine from Answer to Evidence. Stakeholder discovery carries the quote the draft attaches: three calls ended without confirming who else shapes the decision.</p>
+      </section>
+
+      <section>
+        <h2>Dock, float, and close</h2>
+        <p>On a desktop width, dock moves the sheet into a right sidebar in one measured trip. The same tint then frames the prompt on all four sides, and Home stays usable beside it. Float brings the sheet back over the brief. Close, from the X or Escape, animates the sheet out and returns focus to the composer. Opening again always starts floating. On a phone there is no dock control. The sheet sits above the composer.</p>
+        <figure>
+          <img src="presentation/docked.png" alt="Assistant docked as a right sidebar on the Booked stage, with coaching follow-ups now showing 5 on Home." />
+          <figcaption><b>Docked.</b> The sidebar holds the same stages. Home now shows 5 coaching follow-ups, with the note about Marcus’s rehearsal.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Accessibility and reduced motion</h2>
+        <p>The sheet is a dialog. Every action is a button, and Tab keeps a visible ring on those controls. Focus lands on Close when the sheet opens, and on Back to Home after booking, without a ring until the next Tab. The answer block and the receipt heading stay out of that ring. One polite live region announces the review status and a single summary of the three scores, not each streamed sentence. Escape closes from any stage and focus returns to the composer. When reduced motion is on, the stages still appear and the stream finishes sooner. The sheet, the dock, and the close do not travel.</p>
+      </section>
+
+      <section>
+        <h2>Left out on purpose</h2>
+        <ul class="plain">
+          <li>No second rep. Another question returns this same mock answer, so there is no shortcut to Lena or anyone else.</li>
+          <li>No calendar. Tomorrow at 9:00 AM was already free for both of them, so booking is one confirmation.</li>
+          <li>No extra dataset. The scores, quotes, and next step are the mock stream only. A team benchmark beside each score would need numbers this payload does not have.</li>
+        </ul>
+      </section>
+
+      <footer class="end">
+        <p>Aria, Jordan Ashby, Marcus Bell, and Brookfield are fictional and exist only for this exercise.</p>
+      </footer>
+    </main>
+  </body>
+</html>
