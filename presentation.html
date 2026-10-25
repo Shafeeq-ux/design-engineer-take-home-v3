@@ -75,7 +75,7 @@
         border-radius: 14px;
         overflow: hidden;
       }
-      figure img { display: block; width: 100%; height: auto; }
+      figure img, figure video { display: block; width: 100%; height: auto; background: #e6e6eb; }
       figcaption {
         padding: 0.7rem 0.95rem 0.8rem;
         color: var(--muted);
@@ -112,7 +112,13 @@
         <p class="eyebrow">Aria Sales Hub</p>
         <h1>One question, then a sheet that grows from the composer.</h1>
         <p class="lede">Jordan Ashby manages a sales team at Aria, a fictional company that sells autonomous-drone security systems. She asks the assistant how Marcus Bell is doing on discovery calls this quarter. Marcus is one of her reps, and he is working the Brookfield public-safety deal.</p>
-        <p class="note"><strong>The screen recording is separate.</strong> This page is the still walkthrough. The recording covers the desktop and phone journeys, including the dock move and the close.</p>
+        <figure>
+          <video controls playsinline preload="metadata" src="presentation/walkthrough.mp4">
+            Desktop and mobile journey
+          </video>
+          <figcaption><b>Desktop and mobile journey.</b> The sheet opens from the composer, follows the discovery scores through a booked rehearsal, docks and closes, then shows the answer and the next step on a phone.</figcaption>
+        </figure>
+        <p class="note"><strong>The stills below</strong> are the same path, one stage at a time. The recording above is the motion, including the dock and the close.</p>
       </header>
 
       <section>
@@ -185,7 +191,7 @@
       </section>
 
       <footer class="end">
-        <p>Aria, Jordan Ashby, Marcus Bell, and Brookfield are fictional and exist only for this exercise. The screen recording is shared separately from this page.</p>
+        <p>Aria, Jordan Ashby, Marcus Bell, and Brookfield are fictional and exist only for this exercise.</p>
       </footer>
     </main>
   </body>
