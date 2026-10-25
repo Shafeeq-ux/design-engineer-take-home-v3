@@ -101,7 +101,7 @@ export function App() {
       <aside className="sidebar" aria-label="Primary">
         <div className="brand-row">
           <a className="brand" href="#top" aria-label="Aria Sales Hub home">
-            <img src="/aria-logo.png" alt="" width={26} height={26} />
+            <img src="./aria-logo.png" alt="" width={26} height={26} />
             <span className="nav-label">Aria</span>
           </a>
           <button

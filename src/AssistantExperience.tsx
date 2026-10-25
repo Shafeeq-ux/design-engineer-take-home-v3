@@ -634,7 +634,7 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
           <span className="assistant-grab" aria-hidden="true" />
           <header className="assistant-head">
             <span className="assistant-mark" aria-hidden="true">
-              <img src="/aria-logo.png" alt="" width={16} height={10} />
+              <img src="./aria-logo.png" alt="" width={16} height={10} />
             </span>
             <span className="assistant-id">
               <span className="assistant-name">Aria AI Assistant</span>
