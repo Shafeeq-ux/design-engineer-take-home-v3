@@ -54,7 +54,7 @@
       h1 { font-size: clamp(2.5rem, 4vw, 3.8rem); max-width: 16ch; }
       h2 { font-size: clamp(2rem, 3.1vw, 2.85rem); max-width: 22ch; }
       .cover h1 { max-width: 16em; font-size: clamp(2.35rem, 3.4vw, 3.35rem); }
-      .split h2, .wide h2 { max-width: none; }
+      .split h2, .wide h2, h2.wide { max-width: none; }
       .lede { margin: 0.9rem 0 0; color: var(--muted); font-size: 1.25rem; max-width: 40rem; }
       .ico {
         width: 2.6rem; height: 2.6rem; border-radius: 12px;
@@ -386,16 +386,27 @@
         font-weight: 600; font-variant-numeric: tabular-nums; font-size: 1.15rem;
       }
       .more article.first .n { background: var(--paper); }
-      .more-also, .more-live {
-        margin: 0.85rem 0 0;
+      .more-foot {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        margin-top: 0.85rem;
+      }
+      .more-foot p {
+        margin: 0;
         padding: 0.8rem 1rem;
         background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 12px;
         font-size: 1.08rem;
+        color: var(--muted);
       }
-      .more-also { color: var(--muted); }
-      .more-live strong { color: var(--indigo); font-weight: 600; margin-right: 0.4rem; }
+      .more-foot .live {
+        color: var(--ink);
+        background: var(--indigo-soft);
+        border-color: var(--indigo);
+      }
+      .more-foot strong { color: var(--indigo); font-weight: 600; margin-right: 0.35rem; }
       .scores li.gap { border-color: var(--warn); }
       .scores li.gap b { color: var(--warn); }
       .chrome {
@@ -435,7 +446,7 @@
       .overview button[aria-current="true"] { border-color: var(--indigo); background: var(--indigo-soft); }
       .overview .ix { color: var(--faint); font-variant-numeric: tabular-nums; margin-right: 0.55rem; }
       @media (max-width: 860px) {
-        .split, .phone-layout, .cols, .film, .choice-row, .decide, .cards3, .more, .shots, .outcomes, .eng, .layer, .overview ol { grid-template-columns: 1fr; }
+        .split, .phone-layout, .cols, .film, .choice-row, .decide, .cards3, .more, .more-foot, .shots, .outcomes, .eng, .layer, .overview ol { grid-template-columns: 1fr; }
         .phone-layout figure img { height: auto; width: min(100%, 280px); }
       }
       @media print {
@@ -852,8 +863,10 @@
             <p>A benchmark beside each score is the next step in DECISIONS.md. That needs numbers we were not given.</p>
           </article>
         </div>
-        <p class="more-also">The receipt still prints 9:12 and 9:14. Those should be the time he actually sent, not fixed copy.</p>
-        <p class="more-live"><strong>The live change.</strong> I’ll make it the way I usually work, then try it on the page before I call it done.</p>
+        <div class="more-foot">
+          <p>The receipt still prints 9:12 and 9:14. Those should be the time he actually sent, not fixed copy.</p>
+          <p class="live"><strong>The live change.</strong> I’ll make it the way I usually work, then try it on the page before I call it done.</p>
+        </div>
       </section>
     </main>
 

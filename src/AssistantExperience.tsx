@@ -7,14 +7,16 @@ import { Icons } from "./icons";
 
 type AssistantExperienceProps = {
   prompt: string;
+  attachedFiles: readonly string[];
   onDismiss: () => void;
-  triggerRef: RefObject<HTMLInputElement | null>;
+  triggerRef: RefObject<HTMLTextAreaElement | null>;
   onAnnounce: (message: string) => void;
   onBooked: () => void;
   docked: boolean;
   dockAvailable: boolean;
   onToggleDock: () => void;
   onCloseStart: () => void;
+  onPromptLocked: (locked: boolean) => void;
 };
 
 const STAGES = ["Answer", "Evidence", "Draft", "Sent", "Booked"] as const;
@@ -82,6 +84,18 @@ function triggerElement() {
   return document.querySelector<HTMLElement>(".assistant-trigger");
 }
 
+/** Matches the white surface inset to the composer so they share one edge. */
+function syncPromptHeight() {
+  const trigger = triggerElement();
+  if (!trigger) return null;
+  const next = `${Math.ceil(trigger.offsetHeight)}px`;
+  const root = document.documentElement;
+  if (root.style.getPropertyValue("--prompt-h") !== next) {
+    root.style.setProperty("--prompt-h", next);
+  }
+  return trigger;
+}
+
 function readSidebarWidth() {
   const shell = document.querySelector(".app-shell");
   if (!shell) return "15rem";
@@ -127,15 +141,16 @@ function draftTextBottom(textarea: HTMLTextAreaElement) {
 }
 
 /**
- * The answer grows up from the composer, then follows the next step through
- * evidence, an editable note, a send receipt, and one rehearsal time.
+ * The floating sheet opens at its resting height and keeps it through Booked.
+ * Status, sentences, and the card arrive inside that frame, then the next step,
+ * an editable note, a send receipt, and one rehearsal time.
  * Opening starts floating, and docking lasts only for this visit.
  * Dock and float share one measured move; reduced motion snaps.
  * Closing reverses that motion, then unmounts.
  * Prose stays out of the live region.
  * streamAnswer is the only data source.
  */
-export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, docked, dockAvailable, onToggleDock, onCloseStart }: AssistantExperienceProps) {
+export function AssistantExperience({ prompt, attachedFiles, onDismiss, onAnnounce, onBooked, docked, dockAvailable, onToggleDock, onCloseStart, onPromptLocked }: AssistantExperienceProps) {
   const [statusLabel, setStatusLabel] = useState<string | null>(null);
   const [deltas, setDeltas] = useState<string[]>([]);
   const [card, setCard] = useState<CoachingCardData | null>(null);
@@ -154,6 +169,7 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
   const [sentHint, setSentHint] = useState<string | null>(null);
   const [sentEdited, setSentEdited] = useState(false);
   const [sentLabels, setSentLabels] = useState<string[]>([]);
+  const [sentFiles, setSentFiles] = useState<string[]>([]);
   const [bookedWhen, setBookedWhen] = useState<string | null>(null);
   const [recallEnds, setRecallEnds] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -180,9 +196,19 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
   const onAnnounceRef = useRef(onAnnounce);
   const onDismissRef = useRef(onDismiss);
   const onCloseStartRef = useRef(onCloseStart);
+  const onPromptLockedRef = useRef(onPromptLocked);
   onAnnounceRef.current = onAnnounce;
   onDismissRef.current = onDismiss;
   onCloseStartRef.current = onCloseStart;
+  onPromptLockedRef.current = onPromptLocked;
+
+  // The prompt stays usable while the answer is streaming. It locks once a primary
+  // action is on screen: Draft, Send to Marcus, Book the rehearsal, or Back to Home.
+  const promptLocked = card !== null;
+  useEffect(() => {
+    onPromptLockedRef.current(promptLocked);
+  }, [promptLocked]);
+  useEffect(() => () => onPromptLockedRef.current(false), []);
 
   const dismiss = useCallback(() => {
     if (closingRef.current) return;
@@ -238,6 +264,7 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
 
     const remember = () => {
       if (placingRef.current) return;
+      syncPromptHeight();
       anchorBoxRef.current = readBox(anchor);
       const liveTrigger = triggerElement();
       if (liveTrigger) triggerBoxRef.current = readBox(liveTrigger);
@@ -268,6 +295,8 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
     }
 
     if (surface) surface.style.transition = "none";
+    clearPlacement(trigger);
+    syncPromptHeight();
     const toAnchor = readBox(anchor);
     const toTrigger = readBox(trigger);
     const usable = fromAnchor && fromTrigger && boxIsUsable(fromAnchor) && boxIsUsable(fromTrigger) && boxIsUsable(toAnchor) && boxIsUsable(toTrigger);
@@ -331,6 +360,7 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
         liveSurface.style.marginBottom = "";
       }
       root?.removeAttribute("data-motion");
+      syncPromptHeight();
       anchorBoxRef.current = readBox(anchor);
       const liveTrigger = triggerElement();
       if (liveTrigger) triggerBoxRef.current = readBox(liveTrigger);
@@ -356,15 +386,33 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
 
   useLayoutEffect(() => {
     if (placingRef.current) return;
+    syncPromptHeight();
     const anchor = anchorRef.current;
     const trigger = triggerElement();
     if (anchor) anchorBoxRef.current = readBox(anchor);
     if (trigger) triggerBoxRef.current = readBox(trigger);
   });
 
+  useLayoutEffect(() => {
+    const trigger = triggerElement();
+    if (!trigger) return;
+    const sync = () => {
+      if (placingRef.current) return;
+      const live = syncPromptHeight();
+      if (!live) return;
+      const anchor = anchorRef.current;
+      if (anchor) anchorBoxRef.current = readBox(anchor);
+      triggerBoxRef.current = readBox(live);
+    };
+    const observer = new ResizeObserver(sync);
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [docked]);
+
   useEffect(() => {
     const remember = () => {
       if (placingRef.current) return;
+      syncPromptHeight();
       const anchor = anchorRef.current;
       const trigger = triggerElement();
       if (anchor) anchorBoxRef.current = readBox(anchor);
@@ -583,12 +631,14 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
     const token = ++runRef.current;
     const edited = draftText.trim() !== draftFull.trim();
     const labels = attachments.map((item) => item.label);
+    const files = attachedFiles.slice();
     const delay = prefersReducedMotion() ? 200 : 700;
     void (async () => {
       await wait(delay);
       if (token !== runRef.current) return;
       setSentEdited(edited);
       setSentLabels(labels);
+      setSentFiles(files);
       setSending(false);
       setDrafting(false);
       setSentHint("Note sent to Marcus.");
@@ -615,10 +665,15 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
 
   const recallLeft = recallEnds === null ? null : recallEnds - now;
   const recallClosed = recallLeft !== null && recallLeft <= 0;
-  const attachedSummary =
+  const momentSummary =
     sentLabels.length === 0
       ? "No moments attached"
       : `${sentLabels.join(", ")} · ${sentLabels.length} ${sentLabels.length === 1 ? "moment" : "moments"} attached`;
+  const fileSummary =
+    sentFiles.length === 0
+      ? ""
+      : ` · ${sentFiles.join(", ")} · ${sentFiles.length} ${sentFiles.length === 1 ? "file" : "files"} you attached`;
+  const attachedSummary = `${momentSummary}${fileSummary}`;
 
   return createPortal(
     <div className={`assistant-root${closing ? " is-closing" : ""}`} data-placement={docked ? "dock" : "float"}>
@@ -626,7 +681,7 @@ export function AssistantExperience({ prompt, onDismiss, onAnnounce, onBooked, d
       <div ref={anchorRef} className="assistant-anchor" style={{ "--sidebar-w": sidebarWidth } as CSSProperties}>
         <div
           ref={sheetRef}
-          className={`assistant-sheet${entering && !closing ? " is-entering" : ""}${closing ? " is-closing" : ""}${stage >= 2 && !docked ? " locked" : ""}`}
+          className={`assistant-sheet${entering && !closing ? " is-entering" : ""}${closing ? " is-closing" : ""}${docked ? "" : " locked"}`}
           role="dialog"
           aria-modal={docked ? "false" : "true"}
           aria-labelledby="assistant-question"

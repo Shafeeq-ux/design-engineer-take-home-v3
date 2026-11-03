@@ -14,30 +14,20 @@ import { Icons } from "./icons";
 
 export const DEFAULT_PROMPT = "How is Marcus doing on discovery calls this quarter?";
 
-/** Largest font that keeps the whole question visible. Longer text stays on one line and scrolls. */
-function fitPromptField(input: HTMLInputElement) {
-  input.style.fontSize = "";
-  const max = parseFloat(getComputedStyle(input).fontSize);
-  if (!Number.isFinite(max) || input.clientWidth < 1) return;
-  if (input.scrollWidth <= input.clientWidth) return;
+type ComposerFile = { id: string; name: string };
 
-  const floor = 8;
-  let low = floor;
-  let high = max;
-  let best = floor;
-  let fitted = false;
-  for (let step = 0; step < 12; step += 1) {
-    const mid = (low + high) / 2;
-    input.style.fontSize = `${mid}px`;
-    if (input.scrollWidth <= input.clientWidth) {
-      fitted = true;
-      best = mid;
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-  input.style.fontSize = `${fitted ? best : floor}px`;
+/** Grows the question with its text when field-sizing is unavailable. Starts near 3.5rem and caps near 8rem. */
+function fitPromptField(field: HTMLTextAreaElement) {
+  const style = getComputedStyle(field);
+  const min = parseFloat(style.minHeight);
+  const max = parseFloat(style.maxHeight);
+  const minPx = Number.isFinite(min) ? min : 56;
+  const maxPx = Number.isFinite(max) ? max : 128;
+  field.style.height = "auto";
+  const full = field.scrollHeight;
+  const next = Math.min(Math.max(full, minPx), maxPx);
+  field.style.height = `${next}px`;
+  field.style.overflowY = full > maxPx + 1 ? "auto" : "hidden";
 }
 
 const overviewSignals = [
@@ -56,7 +46,10 @@ export function App() {
   const [assistantDocked, setAssistantDocked] = useState(false);
   const [assistantClosing, setAssistantClosing] = useState(false);
   const [dockAvailable, setDockAvailable] = useState(() => window.matchMedia("(min-width: 761px)").matches);
-  const triggerRef = useRef<HTMLInputElement>(null);
+  const [composerFiles, setComposerFiles] = useState<ComposerFile[]>([]);
+  const [promptLocked, setPromptLocked] = useState(false);
+  const triggerRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const docked = assistantIsOpen && assistantDocked && dockAvailable;
   const showDockColumn = docked && !assistantClosing;
 
@@ -68,6 +61,15 @@ export function App() {
     return () => media.removeEventListener("change", onChange);
   }, []);
 
+  const addComposerFiles = (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const next = Array.from(list).map((file) => ({
+      id: crypto.randomUUID(),
+      name: file.name || "attachment",
+    }));
+    setComposerFiles((current) => [...current, ...next]);
+  };
+
   const invokeAssistant = (text?: string) => {
     const next = (text ?? prompt).trim() || DEFAULT_PROMPT;
     setPrompt(next);
@@ -76,12 +78,18 @@ export function App() {
   };
 
   useLayoutEffect(() => {
-    const input = triggerRef.current;
-    if (!input) return;
-    const fit = () => fitPromptField(input);
+    const field = triggerRef.current;
+    if (!field || CSS.supports("field-sizing", "content")) return;
+    const fit = () => fitPromptField(field);
     fit();
-    const observer = new ResizeObserver(fit);
-    if (input.parentElement) observer.observe(input.parentElement);
+    let lastWidth = field.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const width = field.clientWidth;
+      if (Math.abs(width - lastWidth) < 0.5) return;
+      lastWidth = width;
+      fit();
+    });
+    observer.observe(field);
     return () => observer.disconnect();
   }, [prompt, assistantIsOpen, sidebarIsCompact, showDockColumn]);
 
@@ -89,6 +97,7 @@ export function App() {
     setAssistantIsOpen(false);
     setAssistantDocked(false);
     setAssistantClosing(false);
+    setPromptLocked(false);
     // The dialog clears `inert` on the shell during commit. A second frame
     // waits for that before focus returns to the composer.
     window.requestAnimationFrame(() => {
@@ -221,6 +230,7 @@ export function App() {
         {assistantIsOpen ? (
           <AssistantExperience
             prompt={submittedPrompt}
+            attachedFiles={composerFiles.map((file) => file.name)}
             onDismiss={dismissAssistant}
             triggerRef={triggerRef}
             onAnnounce={setAnnouncement}
@@ -229,6 +239,7 @@ export function App() {
             dockAvailable={dockAvailable}
             onToggleDock={() => setAssistantDocked((current) => !current)}
             onCloseStart={() => setAssistantClosing(true)}
+            onPromptLocked={setPromptLocked}
           />
         ) : null}
       </main>
@@ -238,13 +249,67 @@ export function App() {
         aria-label="Ask AI Assistant"
         onSubmit={(event) => {
           event.preventDefault();
+          if (promptLocked) return;
           invokeAssistant();
         }}
       >
-        <label className="sr-only" htmlFor="assistant-prompt">Ask AI Assistant anything</label>
-        <input ref={triggerRef} id="assistant-prompt" value={prompt} autoComplete="off" onChange={(event) => setPrompt(event.target.value)} />
-        <button className="icon-button optional-action" type="button" aria-label="Voice input" disabled><Icons.mic data-icon="inline-only" /></button>
-        <button className="icon-button primary" type="submit" aria-label="Ask AI Assistant"><Icons.arrowUp data-icon="inline-only" /></button>
+        <div className={`assistant-composer${promptLocked ? " is-locked" : ""}`}>
+          <label className="sr-only" htmlFor="assistant-prompt">Ask AI Assistant anything</label>
+          <textarea
+            ref={triggerRef}
+            id="assistant-prompt"
+            rows={2}
+            value={prompt}
+            placeholder="Ask AI Assistant anything"
+            autoComplete="off"
+            disabled={promptLocked}
+            onChange={(event) => setPrompt(event.target.value)}
+            onKeyDown={(event) => {
+              if (promptLocked) return;
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
+          />
+          {composerFiles.length > 0 ? (
+            <ul className="composer-files" aria-label="Attachments">
+              {composerFiles.map((file) => (
+                <li className="composer-file" key={file.id}>
+                  <span className="composer-file-name">{file.name}</span>
+                  <button type="button" aria-label={`Remove ${file.name}`} onClick={() => setComposerFiles((current) => current.filter((item) => item.id !== file.id))}>
+                    <Icons.close aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="assistant-composer-bar">
+            <button className="icon-button" type="button" aria-label="Add attachment" disabled={promptLocked} onClick={() => fileInputRef.current?.click()}>
+              <Icons.plus data-icon="inline-only" />
+            </button>
+            <div className="assistant-composer-actions">
+              <button className="icon-button optional-action" type="button" aria-label="Voice input" disabled><Icons.mic data-icon="inline-only" /></button>
+              <button className="icon-button primary" type="submit" aria-label="Ask AI Assistant" disabled={promptLocked}><Icons.arrowUp data-icon="inline-only" /></button>
+            </div>
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          className="composer-file-input"
+          type="file"
+          multiple
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(event) => {
+            if (promptLocked) {
+              event.target.value = "";
+              return;
+            }
+            addComposerFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
       </form>
       {createPortal(
         <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>,
