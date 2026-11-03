@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aria assistant, discussion deck</title>
+    <style>
+      :root {
+        --ink: oklch(0.21 0.01 272);
+        --muted: oklch(0.46 0.02 270);
+        --faint: oklch(0.62 0.015 270);
+        --line: oklch(0.9 0.008 272);
+        --indigo: oklch(0.395 0.222 272.5);
+        --indigo-soft: oklch(0.955 0.02 272);
+        --paper: #fff;
+        --canvas: oklch(0.985 0.004 272);
+        --warn: oklch(0.5 0.13 49);
+        --sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --chrome: 3.25rem;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 21px;
+        line-height: 1.4;
+        letter-spacing: -0.011em;
+      }
+      .progress {
+        position: fixed; top: 0; left: 0; height: 3px;
+        background: var(--indigo); z-index: 5;
+      }
+      .deck { height: 100%; }
+      .slide {
+        position: absolute;
+        inset: 0 0 var(--chrome) 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: safe center;
+        padding: clamp(1.1rem, 2.5vh, 2rem) clamp(1.25rem, 3.5vw, 3rem);
+        opacity: 0;
+        visibility: hidden;
+        overflow: auto;
+      }
+      .slide.is-active { opacity: 1; visibility: visible; }
+      @media (prefers-reduced-motion: no-preference) {
+        .slide { transition: opacity 160ms linear; }
+      }
+      .kicker { margin: 0 0 0.45rem; color: var(--indigo); font-size: 1.05rem; font-weight: 600; }
+      h1, h2 { margin: 0; font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; }
+      h1 { font-size: clamp(2.5rem, 4vw, 3.8rem); max-width: 16ch; }
+      h2 { font-size: clamp(2rem, 3.1vw, 2.85rem); max-width: 22ch; }
+      .cover h1 { max-width: 16em; font-size: clamp(2.35rem, 3.4vw, 3.35rem); }
+      .split h2, .wide h2 { max-width: none; }
+      .lede { margin: 0.9rem 0 0; color: var(--muted); font-size: 1.25rem; max-width: 40rem; }
+      .ico {
+        width: 2.6rem; height: 2.6rem; border-radius: 12px;
+        background: var(--indigo-soft); color: var(--indigo);
+        display: grid; place-items: center; flex: none;
+      }
+      .ico svg { width: 1.3rem; height: 1.3rem; }
+      .cards3 {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem; margin-top: 1.35rem;
+      }
+      .cards3 article {
+        background: var(--paper); border: 1px solid var(--line);
+        border-radius: 16px; padding: 1.2rem 1.2rem 1.3rem; height: 100%;
+      }
+      .cards3 h3 { margin: 0.85rem 0 0.35rem; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; }
+      .cards3 p { margin: 0; color: var(--muted); font-size: 1.08rem; }
+      .split {
+        display: grid;
+        grid-template-columns: minmax(16rem, 0.78fr) minmax(0, 1.25fr);
+        gap: clamp(1rem, 2.5vw, 2.25rem);
+        align-items: center;
+      }
+      .split .copy p { margin: 0.7rem 0 0; color: var(--muted); font-size: 1.2rem; }
+      figure { margin: 0; min-width: 0; }
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - 8.5rem);
+        object-fit: contain;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .shots {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: end;
+      }
+      .shots figcaption { margin: 0.4rem 0 0; color: var(--muted); font-size: 1rem; font-weight: 600; }
+      .shot-phone img { width: auto; height: min(58vh, 520px); max-height: none; border-radius: 22px; }
+      .ai-split { margin-top: 0.85rem; align-items: center; }
+      .ai-split figure img { width: auto; max-width: 100%; max-height: 38vh; }
+      .phone-layout figure img {
+        width: auto;
+        height: min(74vh, 680px);
+        max-height: none;
+        border-radius: 24px;
+      }
+      .film {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin: 1.15rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .film img {
+        width: 100%;
+        aspect-ratio: 17 / 20;
+        object-fit: contain;
+        object-position: center top;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: oklch(0.94 0.004 270);
+      }
+      .film strong { display: block; margin-top: 0.5rem; font-size: 1.08rem; }
+      .film span { display: block; color: var(--muted); font-size: 0.98rem; }
+      .steps { margin: 0.9rem 0 0; padding: 0; list-style: none; }
+      .steps li {
+        padding: 0.55rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 1.02rem;
+      }
+      .steps li:last-child { border-bottom: 1px solid var(--line); }
+      .steps strong { font-weight: 600; }
+      .choice-row {
+        display: grid;
+        grid-template-columns: 0.7fr 1.3fr;
+        gap: 0.85rem;
+        margin-top: 0.85rem;
+        align-items: start;
+      }
+      .choice-row figure, .ai-pics figure { margin: 0; }
+      .choice-row img, .ai-pics img {
+        width: 100%;
+        object-fit: contain;
+        object-position: center top;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: oklch(0.94 0.004 270);
+      }
+      .choice-row img { max-height: 46vh; }
+      .ai-pics { display: grid; gap: 0.65rem; align-content: start; }
+      .ai-pics img { width: auto; max-width: 100%; max-height: 36vh; object-position: left top; background: var(--paper); }
+      .ai-pics figure:last-child img { width: 100%; max-height: 24vh; }
+      .choice-row figcaption, .ai-pics figcaption {
+        margin: 0.45rem 0 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+      .choice-row figcaption strong, .ai-pics figcaption strong { color: var(--ink); font-weight: 600; }
+      .scales {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 0.8rem;
+      }
+      .scale {
+        padding: 0.85rem 1rem 1rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .scale.kept { border-color: var(--indigo); background: var(--indigo-soft); }
+      .tag { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+      .scale.kept .tag { color: var(--indigo); }
+      .nums { display: flex; gap: 0.9rem; }
+      .nums b { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+      .scale.dropped .nums b { color: var(--faint); }
+      .scale p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.95rem; }
+      .cols { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 2rem; margin-top: 1.1rem; }
+      .cols h3 { margin: 0 0 0.45rem; font-size: 1.2rem; font-weight: 600; color: var(--indigo); }
+      .cols ul { margin: 0; padding: 0; list-style: none; }
+      .cols li { padding: 0.55rem 0; border-top: 1px solid var(--line); font-size: 1.08rem; }
+      .rule { margin: 1.15rem 0 0; font-size: 1.15rem; max-width: 40rem; }
+      .order { margin: 0.4rem 0 0; padding: 0; list-style: none; }
+      .order li {
+        display: grid;
+        grid-template-columns: 1.6rem 1fr;
+        gap: 0.55rem;
+        padding: 0.55rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .order .rank { font-weight: 600; color: var(--indigo); font-variant-numeric: tabular-nums; }
+      .order strong { font-weight: 600; }
+      .order p { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.95rem; }
+      .libs { display: flex; flex-wrap: wrap; gap: 0.45rem 0.9rem; margin: 0.65rem 0 0; padding: 0; list-style: none; font-size: 1.05rem; }
+      .libs li { display: block; padding: 0; border: 0; font-size: 1.05rem; }
+      .libs a { font-weight: 600; }
+      .letters { margin: 0.85rem 0 0; padding: 0; list-style: none; }
+      .letters > li {
+        display: grid;
+        grid-template-columns: 1.5rem 1fr;
+        gap: 0.55rem;
+        padding: 0.62rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 1.2rem;
+      }
+      .letters.with-icons > li { grid-template-columns: 2.6rem 1fr; gap: 0.8rem; align-items: start; }
+      .letters.with-icons .ico { margin-top: 0.15rem; }
+      .letters > li:last-child { border-bottom: 1px solid var(--line); }
+      .letters b { color: var(--indigo); font-weight: 600; }
+      .decide {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1.1rem;
+      }
+      .decide h3 { margin: 0 0 0.4rem; font-size: 1.2rem; font-weight: 600; color: var(--indigo); display: flex; align-items: center; gap: 0.5rem; }
+      .decide h3 .ico { width: 2rem; height: 2rem; border-radius: 8px; }
+      .decide h3 .ico svg { width: 1.05rem; height: 1.05rem; }
+      .decide ul { margin: 0; padding: 0; list-style: none; }
+      .decide li { padding: 0.4rem 0; border-top: 1px solid var(--line); font-size: 1.05rem; }
+      .decide li p { margin: 0.12rem 0 0; color: var(--muted); font-size: 0.98rem; }
+      .scores { display: flex; gap: 0.7rem; margin: 0.9rem 0 0; padding: 0; list-style: none; }
+      .scores li {
+        flex: 1;
+        padding: 0.7rem 0.8rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .scores b { display: block; font-size: 2.15rem; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+      .scores span { color: var(--muted); font-size: 1.02rem; }
+      .arch { margin-top: 0.7rem; display: grid; gap: 0.65rem; }
+      .pipe {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        position: relative;
+      }
+      .pipe::before {
+        content: "";
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        top: 1.35rem;
+        height: 2px;
+        background: var(--indigo);
+        opacity: 0.28;
+      }
+      .pipe li {
+        position: relative;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0.75rem 0.7rem 0.85rem;
+        text-align: center;
+      }
+      .pipe em {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 1.7rem;
+        height: 1.7rem;
+        margin: 0 auto 0.4rem;
+        border-radius: 99px;
+        background: var(--indigo);
+        color: white;
+        font-style: normal;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .pipe b { display: block; font-size: 1.08rem; letter-spacing: -0.02em; }
+      .pipe span { display: block; margin-top: 0.2rem; color: var(--muted); font-size: 0.92rem; line-height: 1.3; }
+      .pipe li.key { background: var(--indigo-soft); border-color: var(--indigo); }
+      .turn {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0.15rem 0;
+        color: var(--indigo);
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+      .turn i { flex: 1; height: 0; border-top: 2px dashed color-mix(in oklch, var(--indigo) 45%, transparent); }
+      .outcomes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
+      .outcomes p { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem 0.8rem; color: var(--muted); font-size: 0.98rem; }
+      .outcomes strong { color: var(--ink); }
+      .stack { margin-top: 0.75rem; display: grid; gap: 0.5rem; }
+      .layer {
+        display: grid;
+        grid-template-columns: 11rem 1fr;
+        gap: 0.75rem;
+        align-items: center;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.65rem 0.85rem;
+      }
+      .layer h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+      .layer small { display: block; margin-top: 0.1rem; color: var(--muted); font-size: 0.82rem; }
+      .bits { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .bit {
+        background: var(--indigo-soft);
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 0.32rem 0.55rem;
+        font-size: 0.95rem;
+      }
+      .layer.here { background: var(--indigo-soft); border-color: var(--indigo); }
+      .layer.later { background: transparent; border-style: dashed; }
+      .layer.later .bit { background: var(--paper); border: 1px solid var(--line); }
+      .eng { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(17rem, 0.95fr); gap: clamp(1rem, 2.5vw, 2rem); align-items: center; }
+      .eng .letters { margin-top: 0.7rem; }
+      .ide {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        min-width: 0;
+        box-shadow: 0 16px 36px oklch(0.45 0.04 272 / 0.08);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .ide-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 0.75rem;
+        background: oklch(0.97 0.004 272);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.82rem;
+        color: var(--muted);
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .dot { width: 0.55rem; height: 0.55rem; border-radius: 99px; background: var(--line); flex: none; }
+      .dot:nth-child(1) { background: oklch(0.75 0.12 25); }
+      .dot:nth-child(2) { background: oklch(0.82 0.12 90); }
+      .dot:nth-child(3) { background: oklch(0.72 0.12 150); }
+      .ide-label {
+        margin: 0;
+        padding: 0.45rem 0.8rem 0.15rem;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .tree { margin: 0; padding: 0.2rem 0.55rem 0.55rem; list-style: none; font-size: 0.88rem; line-height: 1.55; }
+      .tree ul { margin: 0; padding: 0 0 0 1.15rem; list-style: none; border-left: 1px solid var(--line); }
+      .tree li { color: var(--ink); white-space: nowrap; }
+      .tree .dir { color: var(--indigo); font-weight: 600; }
+      .tree .ours { background: var(--indigo-soft); border-radius: 5px; padding: 0.05rem 0.28rem; font-weight: 600; }
+      .tree .hint { color: var(--muted); font-size: 0.72rem; margin-left: 0.35rem; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      .fi {
+        display: inline-block;
+        width: 0.9rem;
+        height: 0.9rem;
+        margin-right: 0.32rem;
+        vertical-align: -0.12rem;
+        color: var(--muted);
+      }
+      .fi.ts { color: oklch(0.58 0.13 250); }
+      .fi.css { color: oklch(0.58 0.14 305); }
+      .fi.md { color: oklch(0.62 0.02 250); }
+      .fi.html { color: oklch(0.62 0.14 55); }
+      .fi.folder { color: var(--indigo); }
+      .ide-foot {
+        margin: 0;
+        padding: 0.45rem 0.8rem 0.6rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      .more { margin-top: 1.1rem; }
+      .more article.first { border-color: var(--indigo); background: var(--indigo-soft); }
+      .more .n {
+        display: grid; place-items: center;
+        width: 2.6rem; height: 2.6rem; border-radius: 12px;
+        background: var(--indigo-soft); color: var(--indigo);
+        font-weight: 600; font-variant-numeric: tabular-nums; font-size: 1.15rem;
+      }
+      .more article.first .n { background: var(--paper); }
+      .more-also, .more-live {
+        margin: 0.85rem 0 0;
+        padding: 0.8rem 1rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 1.08rem;
+      }
+      .more-also { color: var(--muted); }
+      .more-live strong { color: var(--indigo); font-weight: 600; margin-right: 0.4rem; }
+      .scores li.gap { border-color: var(--warn); }
+      .scores li.gap b { color: var(--warn); }
+      .chrome {
+        position: fixed; left: 0; right: 0; bottom: 0; height: var(--chrome);
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+        background: var(--canvas); border-top: 1px solid var(--line);
+        color: var(--muted); font-size: 0.9rem; z-index: 4;
+      }
+      .chrome .spacer { flex: 1; }
+      .count, .nav {
+        font: inherit; color: inherit; cursor: pointer;
+      }
+      .count { background: none; border: 0; padding: 0.25rem 0.4rem; }
+      .nav {
+        width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 8px;
+        background: var(--paper); color: var(--ink);
+      }
+      .count:focus-visible, .nav:focus-visible, .overview button:focus-visible {
+        outline: 2px solid var(--indigo); outline-offset: 2px;
+      }
+      .overview {
+        position: fixed; inset: 0 0 var(--chrome) 0; background: var(--canvas);
+        z-index: 6; overflow: auto; padding: clamp(1.5rem, 4vw, 3rem);
+      }
+      .overview[hidden] { display: none; }
+      .overview h2 { margin-bottom: 1rem; }
+      .overview ol {
+        margin: 0; padding: 0; list-style: none;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem;
+      }
+      .overview button {
+        width: 100%; text-align: left; background: var(--paper);
+        border: 1px solid var(--line); border-radius: 10px;
+        padding: 0.75rem 0.9rem; font: inherit; color: var(--ink); cursor: pointer;
+      }
+      .overview button[aria-current="true"] { border-color: var(--indigo); background: var(--indigo-soft); }
+      .overview .ix { color: var(--faint); font-variant-numeric: tabular-nums; margin-right: 0.55rem; }
+      @media (max-width: 860px) {
+        .split, .phone-layout, .cols, .film, .choice-row, .decide, .cards3, .more, .shots, .outcomes, .eng, .layer, .overview ol { grid-template-columns: 1fr; }
+        .phone-layout figure img { height: auto; width: min(100%, 280px); }
+      }
+      @media print {
+        .progress, .chrome, .overview { display: none !important; }
+        .slide {
+          position: relative; inset: auto; opacity: 1 !important; visibility: visible !important;
+          height: 100vh; break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" id="bar"></div>
+    <main class="deck" id="deck">
+      <section class="slide cover" data-title="Cover">
+        <div class="split">
+          <div class="copy">
+            <p class="kicker">Aria Sales Hub</p>
+            <h1>How is Marcus doing on discovery calls this quarter?</h1>
+            <p class="lede">Jordan Ashby manages the team. Marcus Bell is working the Brookfield deal. The assistant takes that question through a coaching note and a 15-minute rehearsal.</p>
+          </div>
+          <figure>
+            <img src="deck/answer.png" alt="The assistant open over Home, with Marcus's discovery scores." />
+          </figure>
+        </div>
+      </section>
+
+      <section class="slide" data-title="The brief">
+        <p class="kicker">01 · The brief</p>
+        <h2 class="wide">I started by reading the README.</h2>
+        <div class="cards3">
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+            <h3>One question</h3>
+            <p>One moment inside the shell, after Jordan asks how Marcus is doing on discovery calls this quarter.</p>
+          </article>
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+            <h3>A fixed mock</h3>
+            <p>One status, three sentences, one coaching card, then done. No second question and no extra data.</p>
+          </article>
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span>
+            <h3>The shell stayed</h3>
+            <p>It was already built. The job was the experience after he asks.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide" data-title="The shell">
+        <div class="split">
+          <div class="copy">
+            <p class="kicker">02 · Ran it locally</p>
+            <h2>Then I opened the shell and looked at what was already there.</h2>
+            <p>The question bar sits at the bottom of Home. Jordan, Marcus, and the Brookfield deal are already on the page. I left that shell alone and designed what happens after he sends the question.</p>
+          </div>
+          <figure>
+            <img src="deck/home.png" alt="Aria Sales Hub home, with the Marcus question in the bar at the bottom." />
+          </figure>
+        </div>
+      </section>
+
+      <section class="slide" data-title="The workflow">
+        <p class="kicker">03 · The workflow</p>
+        <h2 class="wide">Sales rep, then the call, then the coach.</h2>
+        <div class="cards3">
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <h3>Marcus, the rep</h3>
+            <p>A discovery call is where he learns what the buyer needs, who else decides, and what success would look like.</p>
+          </article>
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.8 2z"/></svg></span>
+            <h3>The call</h3>
+            <p>Jordan manages the team. He reviews those calls to see what Marcus is doing well.</p>
+          </article>
+          <article>
+            <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            <h3>The coach</h3>
+            <p>He needs one clear next step, not a pile of call notes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Assistant research">
+        <div class="split phone-layout">
+          <div class="copy">
+            <p class="kicker">04 · How assistants behave</p>
+            <h2>I looked at assistants before drawing this one.</h2>
+            <ul class="letters">
+              <li><b>a</b><span>How the panel sits on a desktop, a tablet, and a phone, and what has to change when the screen gets narrow.</span></li>
+              <li><b>b</b><span>I looked at AI component libraries. I did not install one. The answer itself is the exercise.
+                <ul class="libs">
+                  <li><a href="https://21st.dev/community/components/s/ai-chat">21st.dev</a></li>
+                  <li><a href="https://react-spectrum.adobe.com/ai-components">React Spectrum</a></li>
+                  <li><a href="https://ui.elevenlabs.io/">ElevenLabs UI</a></li>
+                  <li><a href="https://www.assistant-ui.com/">assistant-ui</a></li>
+                  <li><a href="https://elements.ai-sdk.dev/docs">AI SDK Elements</a></li>
+                  <li><a href="https://www.aisdkagents.com/ai-components/">aisdkagents</a></li>
+                </ul>
+              </span></li>
+            </ul>
+          </div>
+          <div class="shots">
+            <figure>
+              <img src="deck/thumb-answer.png" alt="The assistant on a desktop, over Home." />
+              <figcaption>Desktop</figcaption>
+            </figure>
+            <figure class="shot-phone">
+              <img src="deck/phone.png" alt="The assistant on a phone, above the question, with stakeholder discovery open." />
+              <figcaption>Phone</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="UX process">
+        <div class="split">
+          <div class="copy">
+            <p class="kicker">05 · UX process</p>
+            <h2>Three questions decided the shape.</h2>
+            <ul class="letters with-icons">
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span><span>How does Jordan coach Marcus from inside his morning, without leaving Home?</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span><span>How is he actually doing on discovery calls this quarter?</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span>How does he see the gap, check it, and turn it into something he can send and rehearse?</span></li>
+            </ul>
+          </div>
+          <figure>
+            <img src="deck/thumb-answer.png" alt="The answer card with scores 4.1, 3.8, and 2.9." />
+          </figure>
+        </div>
+      </section>
+
+      <section class="slide" data-title="The flow">
+        <p class="kicker">06 · Designed from the mock</p>
+        <h2>The scores were given. The flow follows them.</h2>
+        <ul class="scores">
+          <li><b>4.1</b><span>Question depth</span></li>
+          <li><b>3.8</b><span>Active listening</span></li>
+          <li class="gap"><b>2.9</b><span>Stakeholder discovery</span></li>
+        </ul>
+        <ol class="film">
+          <li>
+            <img src="deck/thumb-answer.png" alt="The answer with three scores." />
+            <strong>a. The scores</strong>
+            <span>Retrieved from the last six calls</span>
+          </li>
+          <li>
+            <img src="deck/thumb-draft.png" alt="The coaching note Jordan can edit." />
+            <strong>b. The note</strong>
+            <span>Drafted from the call evidence</span>
+          </li>
+          <li>
+            <img src="deck/thumb-sent.png" alt="The note sent to Marcus." />
+            <strong>c. Send</strong>
+            <span>Only when he presses the button</span>
+          </li>
+          <li>
+            <img src="deck/thumb-booked.png" alt="A 15 minute rehearsal booked for tomorrow." />
+            <strong>d–e. Book, then Home</strong>
+            <span>15 minutes, then back to Home</span>
+          </li>
+          <li>
+            <img src="deck/thumb-dock.png" alt="The assistant docked beside Home, on the booked stage." />
+            <strong>f. Dock, optional</strong>
+            <span>After Home, the answer would be gone</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="slide" data-title="Flow diagram">
+        <p class="kicker">07 · How the flow is built</p>
+        <h2 class="wide">From the question to a change on Home.</h2>
+        <div class="arch">
+          <ol class="pipe">
+            <li><em>1</em><b>Composer</b><span>Jordan asks from Home</span></li>
+            <li class="key"><em>2</em><b>streamAnswer</b><span>Status, three sentences, the card, done</span></li>
+            <li><em>3</em><b>Answer</b><span>Scores 4.1, 3.8, and 2.9</span></li>
+            <li><em>4</em><b>Evidence</b><span>One score open, one quote</span></li>
+          </ol>
+          <p class="turn"><i></i>Then he acts on the gap<i></i></p>
+          <ol class="pipe">
+            <li><em>5</em><b>Draft</b><span>He can edit the note and remove what Marcus sees</span></li>
+            <li class="key"><em>6</em><b>Send</b><span>Nothing leaves until this button</span></li>
+            <li><em>7</em><b>Receipt</b><span>As drafted, or with his edits</span></li>
+            <li class="key"><em>8</em><b>Home</b><span>Books 9:00 AM. Follow-ups move from 4 to 5</span></li>
+          </ol>
+          <div class="outcomes">
+            <p><strong>Opening a score</strong> moves the stage from Answer to Evidence. One row stays open.</p>
+            <p><strong>Dock is optional</strong> and lasts for this visit. Reopening starts over the brief.</p>
+            <p><strong>Escape, Not now, and Recall</strong> close the sheet and return him to the question.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Technical architecture">
+        <p class="kicker">08 · Technical architecture</p>
+        <h2 class="wide">The browser talks to a mock. A live system would keep going.</h2>
+        <div class="stack">
+          <div class="layer">
+            <h3>Browser<small>What Jordan sees</small></h3>
+            <div class="bits">
+              <span class="bit">Home and the morning brief</span>
+              <span class="bit">Composer at the bottom</span>
+              <span class="bit">Floating sheet or dock</span>
+            </div>
+          </div>
+          <div class="layer">
+            <h3>Frontend<small>React and TypeScript</small></h3>
+            <div class="bits">
+              <span class="bit">App — shell, focus, follow-ups</span>
+              <span class="bit">AssistantExperience — stages and motion</span>
+              <span class="bit">CoachingCard — score to evidence</span>
+            </div>
+          </div>
+          <div class="layer here">
+            <h3>This build<small>No network call</small></h3>
+            <div class="bits">
+              <span class="bit">streamAnswer()</span>
+              <span class="bit">status</span>
+              <span class="bit">text × 3</span>
+              <span class="bit">coaching card</span>
+              <span class="bit">done</span>
+            </div>
+          </div>
+          <div class="layer later">
+            <h3>Not in this exercise<small>What the mock stands in for</small></h3>
+            <div class="bits">
+              <span class="bit">API — accepts the question</span>
+              <span class="bit">Backend — scores the calls and drafts the note</span>
+              <span class="bit">Database — recordings, skills, and who is free</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Interaction">
+        <p class="kicker">09 · Interaction decisions</p>
+        <h2>Three interactions, each doing one job.</h2>
+        <div class="choice-row">
+          <figure>
+            <img src="deck/thumb-evidence.png" alt="One score open, with the evidence underneath." />
+            <figcaption><strong>One score at a time.</strong> Opening it shows the evidence that produced the number.</figcaption>
+          </figure>
+          <figure>
+            <img src="deck/side.png" alt="Home beside the docked assistant, with a five-stage progress bar." />
+            <figcaption><strong>Dock and float share one move.</strong> The bar along the top shows all five stages, and which one he is in.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Accessibility">
+        <div class="split">
+          <div class="copy">
+            <p class="kicker">10 · Accessibility</p>
+            <h2>He can finish this without a mouse.</h2>
+            <ul class="letters with-icons">
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span><span>Escape closes it from any stage and returns him to the question. While it floats, Tab stays inside. Docked, Home stays in the tab order.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Focus is visible. When the sheet opens it lands on Close, and the ring appears on the next Tab.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></span><span>A screen reader hears one summary when the card is ready, naming all three scores. Streamed sentences are not read out one by one.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span>Each score is a button. It says the value out of 5, and whether the evidence is open.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span><span>Reduced motion keeps the stages. The sheet, the dock, and the close do not travel.</span></li>
+            </ul>
+          </div>
+          <figure>
+            <img src="deck/thumb-evidence.png" alt="Stakeholder discovery open, the score acting as a button with the evidence underneath." />
+          </figure>
+        </div>
+      </section>
+
+      <section class="slide" data-title="AI workflow">
+        <p class="kicker">11 · AI workflow</p>
+        <h2 class="wide">The tool offered more than this flow needed.</h2>
+        <div class="split ai-split">
+          <ul class="letters">
+            <li><b>a</b><span>It added detail and options at every step. I kept only what Jordan would use.</span></li>
+            <li><b>b</b><span>It helped me picture the layout, including references from Dribbble.</span></li>
+            <li><b>c</b><span>It helped build the dock and the floating sheet.</span></li>
+            <li><b>d</b><span>It helped the desktop, tablet, and phone layouts.</span></li>
+          </ul>
+          <figure>
+            <img src="deck/thumb-sent.png" alt="The note sent in Jordan's name, with the real scores 4.1, 3.8, and 2.9." />
+          </figure>
+        </div>
+        <div class="cols">
+          <div>
+            <h3>Kept</h3>
+            <ul>
+              <li>The order of the five steps</li>
+              <li>Escape closes it and returns him to the question</li>
+              <li>The move from the middle of the page to the side</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Taken out</h3>
+            <ul>
+              <li>The made-up scores, 82, 74, and 41</li>
+              <li>A sparkle icon, and buttons that did nothing</li>
+              <li>A label that claimed the answer depended on the page</li>
+              <li>Marking the note as the assistant's, when Jordan sends it</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Tried, dropped, kept">
+        <p class="kicker">12 · Design decisions</p>
+        <h2>What I tried, what I dropped, and what stayed.</h2>
+        <div class="decide">
+          <div>
+            <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9V3"/></svg></span>Tried</h3>
+            <ul>
+              <li>A chain of thought</li>
+              <li>A progress bar</li>
+              <li>A retrieval inspector</li>
+              <li>A rich text editor</li>
+              <li>A radar chart</li>
+              <li>A calendar</li>
+              <li>Several rehearsal times</li>
+            </ul>
+          </div>
+          <div>
+            <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Dropped</h3>
+            <ul>
+              <li>The rich text editor<p>The coaching note should stay simple and crisp.</p></li>
+              <li>The calendar<p>Tomorrow at 9:00 AM was already free for both of them.</p></li>
+              <li>A radar chart<p>A radar is for multivariate data: three or more quantitative variables. That dataset was not in the mock.</p></li>
+              <li>Several rehearsal times<p>One open slot was enough. Booking is one confirmation.</p></li>
+            </ul>
+          </div>
+          <div>
+            <h3><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Kept</h3>
+            <ul>
+              <li>The progress bar<p>He can see all five stages, and which one he is in.</p></li>
+              <li>The evidence under the score<p>He is about to coach someone, so the sentence behind the number is the part of an inspector worth keeping.</p></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Engineering">
+        <div class="eng">
+          <div class="copy">
+            <p class="kicker">13 · Engineering decisions</p>
+            <h2>Built on the stack that was already here.</h2>
+            <ul class="letters with-icons">
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5L3 7l9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></span><span>The new pieces use the shell’s type, color, buttons, and the question bar.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></span><span>React and TypeScript, which the project already used.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg></span><span>No assistant UI kit. The highlighted files are the ones added for this flow.</span></li>
+              <li><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><span>Working rules live in DIRECTIONS.md, so the next person does not put back what was taken out.</span></li>
+            </ul>
+          </div>
+          <aside class="ide" aria-label="Project folder tree">
+            <div class="ide-bar">
+              <span class="dot" aria-hidden="true"></span>
+              <span class="dot" aria-hidden="true"></span>
+              <span class="dot" aria-hidden="true"></span>
+              <span>aria-ai-assistant</span>
+            </div>
+            <p class="ide-label">Explorer</p>
+            <ul class="tree">
+              <li><svg class="fi html" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>index.html</li>
+              <li><svg class="fi md" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>README.md</li>
+              <li><svg class="fi md" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>DECISIONS.md</li>
+              <li><svg class="fi md" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg><span class="ours">DIRECTIONS.md</span><span class="hint">working rules</span></li>
+              <li><svg class="fi folder" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3.5h4.1l1.2 1.5H14v8.5H2v-10Z"/></svg><span class="dir">mock/</span>
+                <ul>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg><span class="ours">streamAnswer.ts</span><span class="hint">the only data</span></li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>types.ts</li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>streamAnswer.test.ts</li>
+                </ul>
+              </li>
+              <li><svg class="fi folder" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3.5h4.1l1.2 1.5H14v8.5H2v-10Z"/></svg><span class="dir">src/</span>
+                <ul>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>main.tsx</li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>App.tsx<span class="hint">shell</span></li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg><span class="ours">AssistantExperience.tsx</span></li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg><span class="ours">CoachingCard.tsx</span></li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>EntityPreview.tsx</li>
+                  <li><svg class="fi ts" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>icons.tsx</li>
+                  <li><svg class="fi css" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>styles.css<span class="hint">shell</span></li>
+                  <li><svg class="fi css" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg><span class="ours">assistant.css</span></li>
+                </ul>
+              </li>
+              <li><svg class="fi folder" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3.5h4.1l1.2 1.5H14v8.5H2v-10Z"/></svg><span class="dir">public/</span>
+                <ul>
+                  <li><svg class="fi html" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.2L13 5.3V14.5H4v-13Zm5.2 0V5.3H13"/></svg>discussion-deck.html</li>
+                  <li><svg class="fi folder" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3.5h4.1l1.2 1.5H14v8.5H2v-10Z"/></svg>deck/</li>
+                </ul>
+              </li>
+            </ul>
+            <p class="ide-foot">Highlighted files are the ones added for this flow.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="slide" data-title="With more time">
+        <p class="kicker">14 · With more time</p>
+        <h2 class="wide">I would fix the undo first.</h2>
+        <div class="cards3 more">
+          <article class="first">
+            <span class="n" aria-hidden="true">1</span>
+            <h3>Recall should bring the note back.</h3>
+            <p>Today it says nothing was sent, then closes the assistant. The control promises an undo. It should put the note back in Draft.</p>
+          </article>
+          <article>
+            <span class="n" aria-hidden="true">2</span>
+            <h3>Let him open the call itself.</h3>
+            <p>He can read the reason. The practice data has no recording to open, so I would not invent a link that goes nowhere.</p>
+          </article>
+          <article>
+            <span class="n" aria-hidden="true">3</span>
+            <h3>Show how he compares with the team.</h3>
+            <p>A benchmark beside each score is the next step in DECISIONS.md. That needs numbers we were not given.</p>
+          </article>
+        </div>
+        <p class="more-also">The receipt still prints 9:12 and 9:14. Those should be the time he actually sent, not fixed copy.</p>
+        <p class="more-live"><strong>The live change.</strong> I’ll make it the way I usually work, then try it on the page before I call it done.</p>
+      </section>
+    </main>
+
+
+    <footer class="chrome">
+      <button class="nav" type="button" id="prev" aria-label="Previous slide">←</button>
+      <button class="nav" type="button" id="next" aria-label="Next slide">→</button>
+      <span class="spacer"></span>
+      <span>Arrow keys · O for all slides</span>
+      <button class="count" type="button" id="count" aria-label="Show all slides">1 / 11</button>
+    </footer>
+
+    <div class="overview" id="overview" hidden>
+      <h2>All slides</h2>
+      <ol id="overview-list"></ol>
+    </div>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const bar = document.getElementById("bar");
+      const count = document.getElementById("count");
+      const overview = document.getElementById("overview");
+      const overviewList = document.getElementById("overview-list");
+      let index = 0;
+
+      slides.forEach((slide, i) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.innerHTML = `<span class="ix">${String(i + 1).padStart(2, "0")}</span>${slide.dataset.title}`;
+        button.addEventListener("click", () => {
+          show(i);
+          closeOverview();
+        });
+        const item = document.createElement("li");
+        item.appendChild(button);
+        overviewList.appendChild(item);
+      });
+
+      function show(next) {
+        index = Math.max(0, Math.min(slides.length - 1, next));
+        slides.forEach((slide, i) => {
+          const on = i === index;
+          slide.classList.toggle("is-active", on);
+          slide.setAttribute("aria-hidden", on ? "false" : "true");
+          slide.inert = !on;
+        });
+        count.textContent = `${index + 1} / ${slides.length}`;
+        bar.style.width = `${((index + 1) / slides.length) * 100}%`;
+        overviewList.querySelectorAll("button").forEach((button, i) => {
+          button.setAttribute("aria-current", i === index ? "true" : "false");
+        });
+        history.replaceState(null, "", `#${index + 1}`);
+      }
+
+      function openOverview() {
+        overview.hidden = false;
+        overviewList.querySelectorAll("button")[index].focus();
+      }
+
+      function closeOverview() {
+        overview.hidden = true;
+      }
+
+      document.getElementById("prev").addEventListener("click", () => show(index - 1));
+      document.getElementById("next").addEventListener("click", () => show(index + 1));
+
+      document.addEventListener("keydown", (event) => {
+        const tag = event.target && event.target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (!overview.hidden && event.key === "Escape") {
+          event.preventDefault();
+          closeOverview();
+          return;
+        }
+        if (event.key === "o" || event.key === "O") {
+          event.preventDefault();
+          overview.hidden ? openOverview() : closeOverview();
+          return;
+        }
+        if (!overview.hidden) return;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") {
+          event.preventDefault();
+          show(index + 1);
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp" || event.key === "PageUp") {
+          event.preventDefault();
+          show(index - 1);
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          show(0);
+        } else if (event.key === "End") {
+          event.preventDefault();
+          show(slides.length - 1);
+        }
+      });
+
+      count.addEventListener("click", () => (overview.hidden ? openOverview() : closeOverview()));
+
+      function fromHash() {
+        const n = Number(location.hash.replace("#", ""));
+        return Number.isFinite(n) && n > 0 ? n - 1 : 0;
+      }
+
+      window.addEventListener("hashchange", () => show(fromHash()));
+      show(fromHash());
+    </script>
+  </body>
+</html>
